@@ -10,7 +10,9 @@ int usReadPin = TBD;
 int servoPwmPin = 9;
 
 //DC motor (through H-bridge)
-int dcPwmPin = TBD;
+int dcPwmPin = 11;
+int dcInAPin = 13;
+int dcInBPin = 8;
 
 //Line sensor
 int leftLinePin = A5;
@@ -52,13 +54,59 @@ void loop() {
   Serial.println(analogRead(midLinePin));
   Serial.println(analogRead(rightLinePin));
   Serial.println("");*/
-  readLineSensor(lineSensor,lineSensor);
+  //readLineSensor(lineSensor,lineSensor);
   /*Serial.println(lineSensor[0]);
   Serial.println(lineSensor[1]);
-  Serial.println(lineSensor[2]);*/
-  Serial.println(linePosition());
-  Serial.println();
-  delay(500);
+  Serial.println(lineSensor[2]);*/ 
+
+  digitalWrite(dcInAPin, HIGH);
+  digitalWrite(dcInBPin, LOW);
+  analogWrite(dcPwmPin, 150);
+  
+  int linePos = linePosition();  
+  //Line following if no obstacle
+  if(linePos == left)
+  {
+    Serial.println(linePos);
+    Serial.println(left);
+    Serial.println("Line to the left");
+    setServoPos(0,20);
+    delay(1000);
+    setServoPos(20,0);
+    linePos = linePosition();
+    while(linePos != middle)
+    {
+      delay(500);
+      linePos = linePosition();
+    }
+    setServoPos(0,-20);//return in initial direction
+    delay(1000);
+    setServoPos(-20,0);
+  }
+  else if(linePos == right)
+  {
+    Serial.println(linePos);
+    Serial.println(right);
+    Serial.println("Line to the right");
+    setServoPos(0,-20);
+    delay(1000);
+    setServoPos(-20,0);
+    linePos = linePosition();
+    while(linePos != middle)
+    {
+      delay(500);
+      linePos = linePosition();
+    }
+    setServoPos(0,20);//return in initial direction
+    delay(1000);
+    setServoPos(20,0);
+  }
+
+
+
+
+
+  delay(500);  
 }
 
 
@@ -72,8 +120,8 @@ void loop() {
 //SETUP FUNCTIONS
 void setupDcMotor() {
       //pinMode(buttonPin, INPUT); 
-//      pinMode(inaPin, OUTPUT);
-//      pinMode(inbPin, OUTPUT);
+      pinMode(dcInAPin, OUTPUT);
+      pinMode(dcInBPin, OUTPUT);
       pinMode(dcPwmPin, OUTPUT);
 //      pinMode(diagaPin, INPUT);
 //      pinMode(diagbPin, INPUT);
@@ -130,7 +178,7 @@ void setServoPos(int currentAngle,int newAngle)
   {
     servo.write(100);
     delay(float(1000*abs(deltaAngle))/360/nbTurnsPerSNegative);
-    Serial.println((float(1000*abs(deltaAngle))/360/nbTurnsPerSNegative));
+    //Serial.println((float(1000*abs(deltaAngle))/360/nbTurnsPerSNegative));
   }
     
   servo.write(90);//Stop
@@ -164,7 +212,7 @@ void readLineSensor(int* newStates, int* previousStates)
 }
 
 
-linePos linePosition()
+/*int linePosition()
 {
     readLineSensor(lineSensor,lineSensor);
 
@@ -172,11 +220,11 @@ linePos linePosition()
      {
       return middle;//Line is on the middle sensor
      }
-    else if((lineSensor[0] > 1.1*lineSensor[2]) && (lineSensor[1] > 1.1*lineSensor[2]))
+    else if(((lineSensor[0] > 1.1*lineSensor[2]) && (lineSensor[1] > 1.1*lineSensor[2])) || ((lineSensor[0] > 1.1*lineSensor[1]) && !(lineSensor[1] > 1.1*lineSensor[2])))
      {
       return right; //line is on the right sensor
      }
-    else if((lineSensor[1] > 1.1*lineSensor[0]) && (lineSensor[2] > 1.1*lineSensor[0]))
+    else if((lineSensor[1] > 1.1*lineSensor[0]) && (lineSensor[2] > 1.1*lineSensor[0]) || ((lineSensor[1] > 1.1*lineSensor[0]) && !(lineSensor[2] > 1.1*lineSensor[0])))
      {
       return left; //line is on the left sensor
      }
@@ -185,10 +233,42 @@ linePos linePosition()
       return unknown;//Line lost
     }
 
+}*/
+
+int linePosition()
+{
+    readLineSensor(lineSensor,lineSensor);
+    int leftMeasure = lineSensor[0];
+    int midMeasure = lineSensor[1];
+    int rightMeasure = lineSensor[2];
+
+    
+    if(isWhiter(leftMeasure,midMeasure) && isWhiter(rightMeasure,midMeasure))
+     {
+      return middle;//Line is on the middle sensor
+     }
+    else if(isWhiter(leftMeasure,rightMeasure))
+     {
+      return right; //line is on the right sensor
+     }
+    else if(isWhiter(rightMeasure, leftMeasure))
+     {
+      return left; //line is on the left sensor
+     }
+    else
+    {
+      return unknown;//Line lost
+    }
 }
 
 
-
+bool isWhiter(int a, int b)//if a is whiter than b returns true
+{
+ if(a > 1.1*b)
+  return true;
+ else 
+  return false;  
+}
 
 
 
