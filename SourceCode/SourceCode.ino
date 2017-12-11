@@ -21,16 +21,28 @@ int rightLinePin = TBD;
 
 Servo servo;
 
+int lineSensor[3] = {0,0,0};
+
+enum linePos
+{
+ unknown,
+ left,
+ middle,
+ right
+};
 
 
-void setup() {
+void setup() { 
   setupDcMotor();
-  setupUsSensor();
   setupServo();
+  
+  setupUsSensor();
+  setupLineSensor();
+
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  
 
 }
 
@@ -58,14 +70,22 @@ pinMode(usTriggerPin, OUTPUT);
 pinMode(usReadPin, INPUT);
 }
 
-void setupServo(){
+setupLineSensor()
+{
+   *lineSensor = readLineSensor(*lineSensor);
+  delay(0.1);
+  *lineSensor = readLineSensor(*lineSensor);
+  delay(0.1);
+  *lineSensor = readLineSensor(*lineSensor);
+}
+void setupServo()
+{
   servo.attach(servoPwmPin);
-  }
+}
 
 
 
 //CONTROL FUNCTIONS
-
 int readUsSensor(){
       long duration, distance;
       digitalWrite(usTriggerPin, LOW);  // Added this line
@@ -100,16 +120,61 @@ if(dutyCycle < 0)
 analogWrite(dcPwmPin, map(dutyCycle, 0, 100, 0, 255));
 }  
 
-int* readLineSensor()
+int* readLineSensor(int* previousStates)
 {
   static int sensorStates[3];
   
-  sensorStates[0] = analogRead(leftLinePin);
+  /*sensorStates[0] = analogRead(leftLinePin);
   sensorStates[1] = analogRead(middleLinePin);
-  sensorStates[2] = analogRead(rightLinePin);
+  sensorStates[2] = analogRead(rightLinePin);*/
+
+  //Low pass filtering the measurements
+  int lowPassAlpha = 0.5;
+  sensorStates[0] = previousStates[0] + lowPassAlpha * (sensorStates[0] - analogRead(leftLinePin));
+  sensorStates[1] = previousStates[1] + lowPassAlpha * (sensorStates[1] - analogRead(midLinePin));
+  sensorStates[2] = previousStates[2] + lowPassAlpha * (sensorStates[2] - analogRead(rightLinePin));
+  //If measurements are not stable enough, add another block like this with a small delay
   
   return sensorStates;
 }
+
+
+linePos linePosition()
+{
+    *lineSensor = readLineSensor(lineSensor);
+
+    if((lineSensor[0] > 1.1*lineSensor[1]) && (lineSensor[2] > 1.1*lineSensor[1]))
+     {
+      return middle;//Line is on the middle sensor
+     }
+    else if((lineSensor[0] > 1.1*lineSensor[2]) && (lineSensor[1] > 1.1*lineSensor[2]))
+     {
+      return right; //line is on the right sensor
+     }
+    else if((lineSensor[1] > 1.1*lineSensor[0]) && (lineSensor[2] > 1.1*lineSensor[0]))
+     {
+      return left; //line is on the left sensor
+     }
+    else
+    {
+      return unknown;//Line lost
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -199,7 +264,7 @@ int* readLineSensor()
     //  delay(500);
     //}
 
-}
+//}
 
 
 //SERVO control example
