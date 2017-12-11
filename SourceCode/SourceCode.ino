@@ -3,19 +3,19 @@
 
 //Connections
 //Ultrasonic sensor
-usTriggerPin = TBD;
-usReadPin = TBD;
+int usTriggerPin = TBD;
+int usReadPin = TBD;
 
 //Servo
-servoPwmPin = TBD;
+int servoPwmPin = TBD;
 
 //DC motor (through H-bridge)
-dcPwmPin = TBD;
+int dcPwmPin = TBD;
 
 //Line sensor
-leftLinePin = TBD;
-midLinePin = TBD;
-rightLinePin = TBD;
+int leftLinePin = TBD;
+int midLinePin = TBD;
+int rightLinePin = TBD;
 
 
 
@@ -38,6 +38,11 @@ void loop() {
 
 
 
+
+
+
+
+//SETUP FUNCTIONS
 void setupDcMotor() {
       //pinMode(buttonPin, INPUT); 
 //      pinMode(inaPin, OUTPUT);
@@ -59,14 +64,16 @@ void setupServo(){
 
 
 
+//CONTROL FUNCTIONS
+
 int readUsSensor(){
       long duration, distance;
-      digitalWrite(trigPin, LOW);  // Added this line
+      digitalWrite(usTriggerPin, LOW);  // Added this line
       delayMicroseconds(2); // Added this line
-      digitalWrite(trigPin, HIGH);
+      digitalWrite(usTriggerPin, HIGH);
       delayMicroseconds(10); // Added this line
-      digitalWrite(trigPin, LOW);
-      duration = pulseIn(echoPin, HIGH);
+      digitalWrite(usTriggerPin, LOW);
+      duration = pulseIn(usReadPin, HIGH);
       distance = (duration/2) / 29.1;
       return distance;
 }
@@ -74,20 +81,39 @@ int readUsSensor(){
 
 void setServoPos(int currentAngle,int newAngle)
 {
-  rotationSpeed = 110; //90 is 0
-  nbTurnsPerS = 7;//how many turn per second the servo does at rotationSpeed
-  deltaAngle = currentAngle - newAngle;
+  int rotationSpeed = 110; //90 is 0
+  float nbTurnsPerS = 7;//how many turn per second the servo does at rotationSpeed
+  int deltaAngle = currentAngle - newAngle;
   
   servo.write(rotationSpeed);
-  delayMicroSeconds(1000*1000*deltaAngle/360/nbTurnsPerS);
+  delayMicroseconds(1000*1000*deltaAngle/360/nbTurnsPerS);
   servo.write(90);//Stop
 }
 
 
+void setDcSpeed(int dutyCycle)
+{
+if(dutyCycle > 100)
+  dutyCycle = 100;
+if(dutyCycle < 0)
+  dutyCycle = 0;
+analogWrite(dcPwmPin, map(dutyCycle, 0, 100, 0, 255));
+}  
 
+int* readLineSensor()
+{
+  static int sensorStates[3];
   
+  sensorStates[0] = analogRead(leftLinePin);
+  sensorStates[1] = analogRead(middleLinePin);
+  sensorStates[2] = analogRead(rightLinePin);
+  
+  return sensorStates;
+}
 
-//Function to controll the DC Motor
+
+
+//Function to control the DC Motor
 //ONLY TEST CODE in function. Change accordingly when assembling
 //void motorCtrl(){
   
@@ -126,11 +152,11 @@ void setServoPos(int currentAngle,int newAngle)
     //  
     //}
   
-}
+//}
 
 //Function to controll the Ultrasonic sensor
 //ONLY TEST CODE in function. Change accordingly when assembling
-void ultraSonCtrl(){
+//void ultraSonCtrl(){
 
     //#define trigPin 13
     //#define echoPin 12
