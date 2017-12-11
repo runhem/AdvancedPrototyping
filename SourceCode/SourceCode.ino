@@ -7,21 +7,21 @@ int usTriggerPin = TBD;
 int usReadPin = TBD;
 
 //Servo
-int servoPwmPin = TBD;
+int servoPwmPin = 9;
 
 //DC motor (through H-bridge)
 int dcPwmPin = TBD;
 
 //Line sensor
-int leftLinePin = TBD;
-int midLinePin = TBD;
-int rightLinePin = TBD;
+int leftLinePin = A5;
+int midLinePin = A4;
+int rightLinePin = A3;
 
 
 
 Servo servo;
 
-int lineSensor[3] = {0,0,0};
+int* lineSensor = NULL;
 
 enum linePos
 {
@@ -33,6 +33,12 @@ enum linePos
 
 
 void setup() { 
+  lineSensor = malloc(3*sizeof(int));
+  lineSensor[0] = 0;
+  lineSensor[1] = 0;
+  lineSensor[2] = 0;
+  
+  Serial.begin(9600);
   setupDcMotor();
   setupServo();
   
@@ -42,8 +48,17 @@ void setup() {
 }
 
 void loop() {
-  
-
+  /*Serial.println(analogRead(leftLinePin));
+  Serial.println(analogRead(midLinePin));
+  Serial.println(analogRead(rightLinePin));
+  Serial.println("");*/
+  readLineSensor(lineSensor,lineSensor);
+  /*Serial.println(lineSensor[0]);
+  Serial.println(lineSensor[1]);
+  Serial.println(lineSensor[2]);*/
+  Serial.println(linePosition());
+  Serial.println();
+  delay(500);
 }
 
 
@@ -70,17 +85,18 @@ pinMode(usTriggerPin, OUTPUT);
 pinMode(usReadPin, INPUT);
 }
 
-setupLineSensor()
+void setupLineSensor()
 {
-   *lineSensor = readLineSensor(*lineSensor);
+   readLineSensor(lineSensor,lineSensor);
   delay(0.1);
-  *lineSensor = readLineSensor(*lineSensor);
+ readLineSensor(lineSensor,lineSensor);
   delay(0.1);
-  *lineSensor = readLineSensor(*lineSensor);
+  readLineSensor(lineSensor,lineSensor);
 }
 void setupServo()
 {
   servo.attach(servoPwmPin);
+  servo.write(90);
 }
 
 
@@ -101,12 +117,22 @@ int readUsSensor(){
 
 void setServoPos(int currentAngle,int newAngle)
 {
-  int rotationSpeed = 110; //90 is 0
-  float nbTurnsPerS = 7;//how many turn per second the servo does at rotationSpeed
-  int deltaAngle = currentAngle - newAngle;
+  float nbTurnsPerSPositive = 0.272;//how many turn per second the servo does at rotationSpeed
+  float nbTurnsPerSNegative = 0.37;
+  float deltaAngle = currentAngle - newAngle;
   
-  servo.write(rotationSpeed);
-  delayMicroseconds(1000*1000*deltaAngle/360/nbTurnsPerS);
+  if(deltaAngle > 0)
+  {
+    servo.write(80);
+    delay(float(1000*abs(deltaAngle))/360/nbTurnsPerSPositive);
+  }
+  else if (deltaAngle < 0)
+  {
+    servo.write(100);
+    delay(float(1000*abs(deltaAngle))/360/nbTurnsPerSNegative);
+    Serial.println((float(1000*abs(deltaAngle))/360/nbTurnsPerSNegative));
+  }
+    
   servo.write(90);//Stop
 }
 
@@ -120,9 +146,8 @@ if(dutyCycle < 0)
 analogWrite(dcPwmPin, map(dutyCycle, 0, 100, 0, 255));
 }  
 
-int* readLineSensor(int* previousStates)
+void readLineSensor(int* newStates, int* previousStates)
 {
-  static int sensorStates[3];
   
   /*sensorStates[0] = analogRead(leftLinePin);
   sensorStates[1] = analogRead(middleLinePin);
@@ -130,18 +155,18 @@ int* readLineSensor(int* previousStates)
 
   //Low pass filtering the measurements
   int lowPassAlpha = 0.5;
-  sensorStates[0] = previousStates[0] + lowPassAlpha * (sensorStates[0] - analogRead(leftLinePin));
-  sensorStates[1] = previousStates[1] + lowPassAlpha * (sensorStates[1] - analogRead(midLinePin));
-  sensorStates[2] = previousStates[2] + lowPassAlpha * (sensorStates[2] - analogRead(rightLinePin));
+  newStates[0] = analogRead(leftLinePin);// previousStates[0] + lowPassAlpha * (newStates[0] - analogRead(leftLinePin));
+  newStates[1] = analogRead(midLinePin);//previousStates[1] + lowPassAlpha * (newStates[1] - analogRead(midLinePin));
+  newStates[2] = analogRead(rightLinePin);//previousStates[2] + lowPassAlpha * (newStates[2] - analogRead(rightLinePin));
   //If measurements are not stable enough, add another block like this with a small delay
   
-  return sensorStates;
+  //return sensorStates;
 }
 
 
 linePos linePosition()
 {
-    *lineSensor = readLineSensor(lineSensor);
+    readLineSensor(lineSensor,lineSensor);
 
     if((lineSensor[0] > 1.1*lineSensor[1]) && (lineSensor[2] > 1.1*lineSensor[1]))
      {
