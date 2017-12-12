@@ -1,201 +1,249 @@
-#include <Servo.h>
-#define TBD 0 
-
-//Connections
-//Ultrasonic sensor
-int usTriggerPin = TBD;
-int usReadPin = TBD;
-
-//Servo
-int servoPwmPin = 9;
-
-//DC motor (through H-bridge)
-int dcPwmPin = 11;
-int dcInAPin = 13;
-int dcInBPin = 8;
-
-//Line sensor
-int leftLinePin = A5;
-int midLinePin = A4;
-int rightLinePin = A3;
-
-
-
-Servo servo;
-
-int* lineSensor = NULL;
-
-enum linePos
-{
- unknown,
- left,
- middle,
- right
-};
-
-
-void setup() { 
-  lineSensor = malloc(3*sizeof(int));
-  lineSensor[0] = 0;
-  lineSensor[1] = 0;
-  lineSensor[2] = 0;
+  #include <Servo.h>
   
-  Serial.begin(9600);
-  setupDcMotor();
-  setupServo();
+  //---Defining connections ---
   
-  setupUsSensor();
-  setupLineSensor();
-
-}
-
-void loop() {
-  /*Serial.println(analogRead(leftLinePin));
-  Serial.println(analogRead(midLinePin));
-  Serial.println(analogRead(rightLinePin));
-  Serial.println("");*/
-  //readLineSensor(lineSensor,lineSensor);
-  /*Serial.println(lineSensor[0]);
-  Serial.println(lineSensor[1]);
-  Serial.println(lineSensor[2]);*/ 
-
-  digitalWrite(dcInAPin, HIGH);
-  digitalWrite(dcInBPin, LOW);
-  analogWrite(dcPwmPin, 150);
+  //Servo
+  int servoPwmPin = 9;
   
-  int linePos = linePosition();  
-  //Line following if no obstacle
-  if(linePos == left)
+  //Ultrasonic sensor
+  int usTriggerPin = 10;
+  int usReadPin = 12;
+  
+  
+  //DC motor (through H-bridge)
+  int dcPwmPin = 11;
+  int dcInAPin = 13;
+  int dcInBPin = 8;
+  
+  //Line sensor
+  int leftLinePin = A5;
+  int midLinePin = A4;
+  int rightLinePin = A3;
+  
+  //---END Defining connections ---
+  
+  Servo servo;
+  
+  int* lineSensor = NULL;
+  
+  enum linePos
   {
-    Serial.println(linePos);
-    Serial.println(left);
-    Serial.println("Line to the left");
-    setServoPos(0,20);
-    delay(1000);
-    setServoPos(20,0);
-    linePos = linePosition();
-    while(linePos != middle)
-    {
-      delay(500);
-      linePos = linePosition();
-    }
-    setServoPos(0,-20);//return in initial direction
-    delay(1000);
-    setServoPos(-20,0);
-  }
-  else if(linePos == right)
+   unknown,
+   left,
+   middle,
+   right
+  };
+  
+  enum distanceToCollision
   {
-    Serial.println(linePos);
-    Serial.println(right);
-    Serial.println("Line to the right");
-    setServoPos(0,-20);
-    delay(1000);
-    setServoPos(-20,0);
-    linePos = linePosition();
-    while(linePos != middle)
-    {
-      delay(500);
-      linePos = linePosition();
-    }
-    setServoPos(0,20);//return in initial direction
-    delay(1000);
-    setServoPos(20,0);
+      tooClose,
+      farEnough,
+      far,
+      veryFar
+  };
+  
+  void setup() { 
+    lineSensor = malloc(3*sizeof(int));
+    lineSensor[0] = 0;
+    lineSensor[1] = 0;
+    lineSensor[2] = 0;
+    
+    Serial.begin(9600);
+
+    //Calling on setUp functions for components
+    setupDcMotor();
+    setupServo();
+    setupUsSensor();
+    setupLineSensor();
+
   }
 
-
-
-
-
-  delay(500);  
-}
-
-
-
-
-
-
-
-
-
-//SETUP FUNCTIONS
-void setupDcMotor() {
-      //pinMode(buttonPin, INPUT); 
-      pinMode(dcInAPin, OUTPUT);
-      pinMode(dcInBPin, OUTPUT);
-      pinMode(dcPwmPin, OUTPUT);
-//      pinMode(diagaPin, INPUT);
-//      pinMode(diagbPin, INPUT);
-//      pinMode(trimPin, INPUT);
+  void loop() 
+  {
+    /*Serial.println(analogRead(leftLinePin));
+    Serial.println(analogRead(midLinePin));
+    Serial.println(analogRead(rightLinePin));
+    Serial.println("");*/
+    //readLineSensor(lineSensor,lineSensor);
+    /*Serial.println(lineSensor[0]);
+    Serial.println(lineSensor[1]);
+    Serial.println(lineSensor[2]);*/ 
+  
+    digitalWrite(dcInAPin, HIGH);
+    digitalWrite(dcInBPin, LOW);
+    analogWrite(dcPwmPin, 150);
+    
+    int linePos = linePosition();  
+    //Line following if no obstacle
+    if(linePos == left)
+    {
+      Serial.println(linePos);
+      Serial.println(left);
+      Serial.println("Line to the left");
+      setServoPos(0,20);
+      delay(1000);
+      setServoPos(20,0);
+      linePos = linePosition();
+      
+      while(linePos != middle)
+        {
+          delay(500);
+          linePos = linePosition();
+        }
+          
+      setServoPos(0,-20);//return in initial direction
+      delay(1000);
+      setServoPos(-20,0);
+    }
+    
+    else if(linePos == right)
+    {
+      Serial.println(linePos);
+      Serial.println(right);
+      Serial.println("Line to the right");
+      setServoPos(0,-20);
+      delay(1000);
+      setServoPos(-20,0);
+      linePos = linePosition();
+      
+      while(linePos != middle)
+      {
+        delay(500);
+        linePos = linePosition();
       }
+      
+      setServoPos(0,20);//return in initial direction
+      delay(1000);
+      setServoPos(20,0);
+    }
 
-void setupUsSensor(){
-pinMode(usTriggerPin, OUTPUT);
-pinMode(usReadPin, INPUT);
-}
+    int distanceToCollision = readUsSensor();
 
-void setupLineSensor()
-{
-   readLineSensor(lineSensor,lineSensor);
-  delay(0.1);
- readLineSensor(lineSensor,lineSensor);
-  delay(0.1);
-  readLineSensor(lineSensor,lineSensor);
-}
-void setupServo()
-{
-  servo.attach(servoPwmPin);
-  servo.write(90);
-}
+    if (distanceToCollision == tooClose){
+      Serial.println("too close");
+      //Call obstical avoidence function      
+      
+    }
 
+    else if (distanceToCollision == farEnough){
+      Serial.println("Far enough");
+      //Call line following proc.
+    }
 
-
-//CONTROL FUNCTIONS
-int readUsSensor(){
-      long duration, distance;
-      digitalWrite(usTriggerPin, LOW);  // Added this line
-      delayMicroseconds(2); // Added this line
-      digitalWrite(usTriggerPin, HIGH);
-      delayMicroseconds(10); // Added this line
-      digitalWrite(usTriggerPin, LOW);
-      duration = pulseIn(usReadPin, HIGH);
-      distance = (duration/2) / 29.1;
-      return distance;
-}
-
-
-void setServoPos(int currentAngle,int newAngle)
-{
-  float nbTurnsPerSPositive = 0.272;//how many turn per second the servo does at rotationSpeed
-  float nbTurnsPerSNegative = 0.37;
-  float deltaAngle = currentAngle - newAngle;
+    else if (distanceToCollision == far){
+      
+    }
+    
+  delay(500); 
+   readUsSensor();
   
-  if(deltaAngle > 0)
-  {
-    servo.write(80);
-    delay(float(1000*abs(deltaAngle))/360/nbTurnsPerSPositive);
   }
-  else if (deltaAngle < 0)
+
+//---SETUP FUNCTIONS---
+  void setupDcMotor() 
   {
-    servo.write(100);
-    delay(float(1000*abs(deltaAngle))/360/nbTurnsPerSNegative);
-    //Serial.println((float(1000*abs(deltaAngle))/360/nbTurnsPerSNegative));
+        //pinMode(buttonPin, INPUT); 
+        pinMode(dcInAPin, OUTPUT);
+        pinMode(dcInBPin, OUTPUT);
+        pinMode(dcPwmPin, OUTPUT);
+  //    pinMode(diagaPin, INPUT);
+  //    pinMode(diagbPin, INPUT);
+  //    pinMode(trimPin, INPUT);
+  }
+
+  void setupUsSensor()
+  {
+    pinMode(usTriggerPin, OUTPUT);
+    pinMode(usReadPin, INPUT);
+  } 
+
+  void setupLineSensor()
+  {
+    readLineSensor(lineSensor,lineSensor);
+    delay(0.1);
+    readLineSensor(lineSensor,lineSensor);
+    delay(0.1);
+    readLineSensor(lineSensor,lineSensor);          
   }
     
-  servo.write(90);//Stop
-}
+  void setupServo()
+  {
+    servo.attach(servoPwmPin);
+    servo.write(90);
+  }
+
+//---END OF SET UP FUNCTIONS---
 
 
-void setDcSpeed(int dutyCycle)
-{
-if(dutyCycle > 100)
-  dutyCycle = 100;
-if(dutyCycle < 0)
-  dutyCycle = 0;
-analogWrite(dcPwmPin, map(dutyCycle, 0, 100, 0, 255));
-}  
+//---CONTROL FUNCTIONS---
+  int readUsSensor()
+  {
+    long duration, distance;
+    digitalWrite(usTriggerPin, LOW);  // Added this line
+    delayMicroseconds(2); // Added this line
+    digitalWrite(usTriggerPin, HIGH);
+    delayMicroseconds(10); // Added this line
+    digitalWrite(usTriggerPin, LOW);
+    duration = pulseIn(usReadPin, HIGH);
+    distance = (duration/2) / 29.1;
 
-void readLineSensor(int* newStates, int* previousStates)
-{
+    if (distance <10){
+      return tooClose;
+    }
+
+    else if (distance > 10 && distance < 20){
+        return farEnough;
+    }
+
+    else if (distance > 20 && distance < 40){
+        return far;
+    }
+
+    else{
+      return veryFar;
+    }
+    
+    delay(500);
+  }
+
+
+  void setServoPos(int currentAngle,int newAngle)
+  {
+    float nbTurnsPerSPositive = 0.272;//how many turn per second the servo does at rotationSpeed
+    float nbTurnsPerSNegative = 0.37;
+    float deltaAngle = currentAngle - newAngle;
+  
+    if(deltaAngle > 0)
+    {
+      servo.write(80);
+      delay(float(1000*abs(deltaAngle))/360/nbTurnsPerSPositive);
+    }
+    else if (deltaAngle < 0)
+    {
+      servo.write(100);
+      delay(float(1000*abs(deltaAngle))/360/nbTurnsPerSNegative);
+      //Serial.println((float(1000*abs(deltaAngle))/360/nbTurnsPerSNegative));
+    }
+    
+    servo.write(90);//Stop
+  }
+
+
+  void setDcSpeed(int dutyCycle)
+  {
+    if(dutyCycle > 100)
+    {
+      dutyCycle = 100;
+    }
+    if(dutyCycle < 0)
+    {
+      dutyCycle = 0;
+    }
+  analogWrite(dcPwmPin, map(dutyCycle, 0, 100, 0, 255));
+  }  
+
+  void readLineSensor(int* newStates, int* previousStates)
+  {
   
   /*sensorStates[0] = analogRead(leftLinePin);
   sensorStates[1] = analogRead(middleLinePin);
@@ -209,7 +257,8 @@ void readLineSensor(int* newStates, int* previousStates)
   //If measurements are not stable enough, add another block like this with a small delay
   
   //return sensorStates;
-}
+  }
+
 
 
 /*int linePosition()
@@ -235,8 +284,8 @@ void readLineSensor(int* newStates, int* previousStates)
 
 }*/
 
-int linePosition()
-{
+  int linePosition()
+  {
     readLineSensor(lineSensor,lineSensor);
     int leftMeasure = lineSensor[0];
     int midMeasure = lineSensor[1];
@@ -259,27 +308,45 @@ int linePosition()
     {
       return unknown;//Line lost
     }
-}
+  }
 
 
-bool isWhiter(int a, int b)//if a is whiter than b returns true
-{
- if(a > 1.1*b)
-  return true;
- else 
-  return false;  
-}
+  bool isWhiter(int a, int b)//if a is whiter than b returns true
+  {
+   if(a > 1.1*b)
+    return true;
+   else 
+    return false;  
+  }
 
 
-
-
-
-
-
-
-
-
-
+//void ultraSonCtrl(){
+//  
+//    long duration, distance;
+//    digitalWrite(trigPin, LOW); 
+//    delayMicroseconds(2); 
+//    digitalWrite(trigPin, HIGH);
+//    delayMicroseconds(1000); 
+//    digitalWrite(trigPin, LOW);
+//    duration = pulseIn(echoPin, HIGH);
+//    if (distance < 10) { 
+//      Serial.println("CLOSE");
+//    }
+//
+//    else{
+//      Serial.println("No worries");
+//    }
+//    
+//    if (distance >= 200 || distance <= 0){
+//    Serial.println("Out of range");
+//    }
+//    else {
+//      Serial.print(distance);
+//      Serial.println(" cm");
+//    }
+//    delay(500);
+//    }
+//}
 
 
 
@@ -324,52 +391,6 @@ bool isWhiter(int a, int b)//if a is whiter than b returns true
   
 //}
 
-//Function to controll the Ultrasonic sensor
-//ONLY TEST CODE in function. Change accordingly when assembling
-//void ultraSonCtrl(){
-
-    //#define trigPin 13
-    //#define echoPin 12
-    //#define led 11
-    //#define led2 10
-    //
-    //void setup() {
-    //  Serial.begin (9600);
-    //  pinMode(trigPin, OUTPUT);
-    //  pinMode(echoPin, INPUT);
-    //  pinMode(led, OUTPUT);
-    //  pinMode(led2, OUTPUT);
-    //}
-    //
-    //void loop() {
-    //  long duration, distance;
-    //  digitalWrite(trigPin, LOW);  // Added this line
-    //  delayMicroseconds(2); // Added this line
-    //  digitalWrite(trigPin, HIGH);
-    ////  delayMicroseconds(1000); - Removed this line
-    //  delayMicroseconds(10); // Added this line
-    //  digitalWrite(trigPin, LOW);
-    //  duration = pulseIn(echoPin, HIGH);
-    //  distance = (duration/2) / 29.1;
-    //  if (distance < 4) {  // This is where the LED On/Off happens
-    //    digitalWrite(led,HIGH); // When the Red condition is met, the Green LED should turn off
-    //  digitalWrite(led2,LOW);
-    //}
-    //  else {
-    //    digitalWrite(led,LOW);
-    //    digitalWrite(led2,HIGH);
-    //  }
-    //  if (distance >= 200 || distance <= 0){
-    //    Serial.println("Out of range");
-    //  }
-    //  else {
-    //    Serial.print(distance);
-    //    Serial.println(" cm");
-    //  }
-    //  delay(500);
-    //}
-
-//}
 
 
 //SERVO control example
