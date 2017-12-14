@@ -218,9 +218,10 @@
 
 
   void followLineProtocol(){
-    Serial.println("inne i lineprot");
+    Serial.println("In FollowLineProtocol");
     int linePos = linePosition(); 
     Serial.println(linePos); 
+    
     //Line following if no obstacle
     if(linePos == left)
     {
@@ -264,6 +265,7 @@
       setServoPos(20,0);
     }
   }
+  
   int count = 0; //Used to check if it's the first or second time we call obstacle avoidance (); Maybe have to move!
   
   void obstacleAvoidance(){
@@ -282,30 +284,6 @@
     
     
   }
-
-
-/*int linePosition()
-{
-    readLineSensor(lineSensor,lineSensor);
-
-    if((lineSensor[0] > 1.1*lineSensor[1]) && (lineSensor[2] > 1.1*lineSensor[1]))
-     {
-      return middle;//Line is on the middle sensor
-     }
-    else if(((lineSensor[0] > 1.1*lineSensor[2]) && (lineSensor[1] > 1.1*lineSensor[2])) || ((lineSensor[0] > 1.1*lineSensor[1]) && !(lineSensor[1] > 1.1*lineSensor[2])))
-     {
-      return right; //line is on the right sensor
-     }
-    else if((lineSensor[1] > 1.1*lineSensor[0]) && (lineSensor[2] > 1.1*lineSensor[0]) || ((lineSensor[1] > 1.1*lineSensor[0]) && !(lineSensor[2] > 1.1*lineSensor[0])))
-     {
-      return left; //line is on the left sensor
-     }
-    else
-    {
-      return unknown;//Line lost
-    }
-
-}*/
 
   int linePosition()
   {
@@ -349,6 +327,30 @@
    else 
     return false;  
   }
+/*int linePosition()
+{
+    readLineSensor(lineSensor,lineSensor);
+
+    if((lineSensor[0] > 1.1*lineSensor[1]) && (lineSensor[2] > 1.1*lineSensor[1]))
+     {
+      return middle;//Line is on the middle sensor
+     }
+    else if(((lineSensor[0] > 1.1*lineSensor[2]) && (lineSensor[1] > 1.1*lineSensor[2])) || ((lineSensor[0] > 1.1*lineSensor[1]) && !(lineSensor[1] > 1.1*lineSensor[2])))
+     {
+      return right; //line is on the right sensor
+     }
+    else if((lineSensor[1] > 1.1*lineSensor[0]) && (lineSensor[2] > 1.1*lineSensor[0]) || ((lineSensor[1] > 1.1*lineSensor[0]) && !(lineSensor[2] > 1.1*lineSensor[0])))
+     {
+      return left; //line is on the left sensor
+     }
+    else
+    {
+      return unknown;//Line lost
+    }
+
+}*/
+
+
 
 
 
