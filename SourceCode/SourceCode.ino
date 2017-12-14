@@ -25,6 +25,7 @@
   Servo servo;
   
   int* lineSensor = NULL;
+  int count = 0;
   
   enum linePos
   {
@@ -37,7 +38,7 @@
   enum distanceToCollision
   {
       tooClose,
-      farEnough,
+      farEnough,  //Unnecesary since we never use the last three
       far,
       veryFar
   };
@@ -48,9 +49,15 @@
     lineSensor[0] = 0;
     lineSensor[1] = 0;
     lineSensor[2] = 0;
-    digitalWrite(dcInAPin, HIGH);
-    digitalWrite(dcInBPin, LOW);
-    analogWrite(dcPwmPin, 150);
+    digitalWrite(dcInAPin, LOW);
+    digitalWrite(dcInBPin, HIGH);
+    
+    for(int speed = 0 ; speed <= 150; speed +=1){
+    analogWrite(dcPwmPin, speed); 
+    delay(20);      
+    }
+    
+    //analogWrite(dcPwmPin, 150);
     
     Serial.begin(9600);
 
@@ -73,12 +80,26 @@
 
     //If distance to obstacle is too close, run obstacle avoidance protocol
     if (distanceToCollision == tooClose)
-    {
-      Serial.println("too close");
-      obstacleAvoidance();
+    { 
+      Serial.println("Too close");
+      digitalWrite(dcInAPin, HIGH);
+      digitalWrite(dcInBPin, LOW);
+      analogWrite(dcPwmPin, 70);
+      setServoPos(0,30);
+      delay(1000);
+      setServoPos(30,0);
+
+      do{
+      delay(700);
+      distanceToCollision = readUsSensor();
+      }
+      while(distanceToCollision == tooClose);
+      digitalWrite(dcInAPin, LOW);
+      digitalWrite(dcInBPin, HIGH);
+      analogWrite(dcPwmPin, 150);
     }
     //If distance to obstacle is far enough, follow the line
-    else if (distanceToCollision == farEnough){
+    else if (distanceToCollision != tooClose){
       Serial.println("Far enough");
       followLineProtocol();
     }
@@ -104,9 +125,6 @@
         pinMode(dcInAPin, OUTPUT);
         pinMode(dcInBPin, OUTPUT);
         pinMode(dcPwmPin, OUTPUT);
-  //    pinMode(diagaPin, INPUT);
-  //    pinMode(diagbPin, INPUT);
-  //    pinMode(trimPin, INPUT);
   }
 
   void setupUsSensor()
@@ -137,30 +155,18 @@
   int readUsSensor()
   {
     long duration, distance;
-    digitalWrite(usTriggerPin, LOW);  // Added this line
-    delayMicroseconds(2); // Added this line
+    digitalWrite(usTriggerPin, LOW);  
+    delayMicroseconds(2); 
     digitalWrite(usTriggerPin, HIGH);
-    delayMicroseconds(10); // Added this line
+    delayMicroseconds(10); 
     digitalWrite(usTriggerPin, LOW);
     duration = pulseIn(usReadPin, HIGH);
     distance = (duration/2) / 29.1;
 
-    if (distance <10){
+    if (distance <15){
       return tooClose;
     }
-
-    else if (distance > 10 && distance < 20){
-        return farEnough;
-    }
-
-    else if (distance > 20 && distance < 40){
-        return far;
-    }
-
-    else{
-      return veryFar;
-    }
-   
+    
   }
 
 
@@ -197,15 +203,12 @@
     {
       dutyCycle = 0;
     }
+
   analogWrite(dcPwmPin, map(dutyCycle, 0, 100, 0, 255));
   }  
 
   void readLineSensor(int* newStates, int* previousStates)
   {
-  
-  /*sensorStates[0] = analogRead(leftLinePin);
-  sensorStates[1] = analogRead(middleLinePin);
-  sensorStates[2] = analogRead(rightLinePin);*/
 
   //Low pass filtering the measurements
   int lowPassAlpha = 0.5;
@@ -218,9 +221,7 @@
 
 
   void followLineProtocol(){
-    Serial.println("In FollowLineProtocol");
     int linePos = linePosition(); 
-    Serial.println(linePos); 
     
     //Line following if no obstacle
     if(linePos == left)
@@ -264,26 +265,31 @@
       delay(1000);
       setServoPos(20,0);
     }
+    else if(linePos == unknown){
+      if(count = 0){
+        obstacleAvoidance();
+        count = 1;
+      }
+      
+      else {
+       analogWrite(dcPwmPin, 0);
+      }
+    
+    }
   }
   
-  int count = 0; //Used to check if it's the first or second time we call obstacle avoidance (); Maybe have to move!
   
   void obstacleAvoidance(){
-    Serial.println("Count = ");
-    Serial.println(count);
-    if(count = 0){
-      //Make hard coded track
-      count = 1;
-      Serial.println("Count = ");
-      Serial.println(count);
+    
+    setServoPos(0,40);
+    delay(3000);
+    setServoPos(-40,0);
+    delay(3000);
     }
 
-    else{ //Second time we lose the line
-      //STOP. Probably at the finish line
-    }
     
     
-  }
+
 
   int linePosition()
   {
@@ -313,7 +319,7 @@
      }
     else
     {
-      Serial.println("do nooo");
+      Serial.println("dont nooo");
       return unknown;//Line lost
       
     }
@@ -327,28 +333,6 @@
    else 
     return false;  
   }
-/*int linePosition()
-{
-    readLineSensor(lineSensor,lineSensor);
-
-    if((lineSensor[0] > 1.1*lineSensor[1]) && (lineSensor[2] > 1.1*lineSensor[1]))
-     {
-      return middle;//Line is on the middle sensor
-     }
-    else if(((lineSensor[0] > 1.1*lineSensor[2]) && (lineSensor[1] > 1.1*lineSensor[2])) || ((lineSensor[0] > 1.1*lineSensor[1]) && !(lineSensor[1] > 1.1*lineSensor[2])))
-     {
-      return right; //line is on the right sensor
-     }
-    else if((lineSensor[1] > 1.1*lineSensor[0]) && (lineSensor[2] > 1.1*lineSensor[0]) || ((lineSensor[1] > 1.1*lineSensor[0]) && !(lineSensor[2] > 1.1*lineSensor[0])))
-     {
-      return left; //line is on the left sensor
-     }
-    else
-    {
-      return unknown;//Line lost
-    }
-
-}*/
 
 
 
